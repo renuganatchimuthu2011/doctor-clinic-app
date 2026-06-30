@@ -371,10 +371,7 @@ function calculateTotal() {
     const doc = parseFloat(doctorFee.value) || 0;
     const proc = parseFloat(procedureFee.value) || 0;
     
-    const patient = patients.find(p => p.id === selectedPatientId);
-    const med = patient && patient.fees.medicine ? patient.fees.medicine : 0;
-    
-    const total = doc + med + proc;
+    const total = doc + proc;
     totalAmount.textContent = `₹${total.toFixed(2)}`;
 }
 
@@ -388,7 +385,7 @@ async function saveBillingAndProcedure() {
     const docFee = parseFloat(doctorFee.value) || 0;
     const procFee = parseFloat(procedureFee.value) || 0;
     const medFee = patient.fees.medicine || 0;
-    const total = docFee + medFee + procFee;
+    const total = docFee + procFee + medFee;
 
     try {
         await db.collection('patients').doc(selectedPatientId).update({
@@ -472,7 +469,7 @@ function renderBillingSummary() {
             <td>${patient.procedure || '-'}</td>
             <td>\u20b9${patient.fees.doctor.toFixed(2)}</td>
             <td>
-                <input type="number" class="billing-editable-input" value="${patient.fees.medicine.toFixed(2)}" min="0" step="0.01" onchange="updateMedicineFee('${patient.id}', this.value)">
+                <input type="number" class="billing-editable-input" value="${(patient.fees.medicine || 0).toFixed(2)}" min="0" step="0.01" onchange="updateMedicineFee('${patient.id}', this.value)">
             </td>
             <td>\u20b9${patient.fees.procedure.toFixed(2)}</td>
             <td class="total-cell">\u20b9${patient.fees.total.toFixed(2)}</td>
@@ -492,7 +489,7 @@ window.updateMedicineFee = async function(patientId, newValue) {
     if (!patient) return;
     
     const med = parseFloat(newValue) || 0;
-    const total = patient.fees.doctor + med + patient.fees.procedure;
+    const total = patient.fees.doctor + patient.fees.procedure + med;
 
     try {
         await db.collection('patients').doc(patientId).update({
@@ -500,8 +497,6 @@ window.updateMedicineFee = async function(patientId, newValue) {
             'fees.total': total
         });
         showToast('Medicine fee updated successfully', 'success');
-        
-        // Total and dashboard will re-render automatically due to onSnapshot
     } catch (error) {
         console.error("Error updating medicine fee: ", error);
         showToast('Error updating medicine fee', 'error');
