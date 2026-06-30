@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muthu Skin Clinic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Authentication Container (Login/Signup) -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-card glass-card">
+            <div class="auth-header">
+                <i class="fa-solid fa-staff-snake logo-icon" style="font-size: 2.5rem; color: var(--primary-color);"></i>
+                <h2>Muthu Skin Clinic</h2>
+                <p id="authSubtitle">Welcome! Please sign in to continue.</p>
+            </div>
+            
+            <form id="authForm">
+                <div class="form-group">
+                    <label for="authUsername">Username</label>
+                    <input type="text" id="authUsername" required placeholder="Enter your username">
+                </div>
+                <div class="form-group">
+                    <label for="authPassword">Password</label>
+                    <input type="password" id="authPassword" required placeholder="Enter your password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="authSubmitBtn">Sign In</button>
+            </form>
+            
+            <div class="auth-footer">
+                <p id="authToggleText">Don't have an account? <a href="#" id="authToggleLink">Register here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div class="app-container" id="mainApp" style="display: none;">
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="logo-container" style="align-items: flex-start;">
+                    <i class="fa-solid fa-staff-snake logo-icon" style="margin-top: 0.25rem;"></i>
+                    <div style="display: flex; flex-direction: column;">
+                        <h2 style="font-size: 1.2rem;">Muthu Skin Clinic</h2>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Batlagundu</span>
+                    </div>
+                </div>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" id="navRegistration">
+                    <i class="fa-solid fa-user-plus"></i> Registration
+                </a>
+                <a href="#" class="nav-item" id="navDashboard">
+                    <i class="fa-solid fa-stethoscope"></i> Doctor Dashboard
+                </a>
+                <a href="#" class="nav-item" id="navBillingSummary">
+                    <i class="fa-solid fa-file-invoice"></i> Billing Summary
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="search-bar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="searchPatient" placeholder="Search by name or phone..." autocomplete="off">
+                    <div id="searchResults" class="search-results-dropdown" style="display: none;"></div>
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">MK</div>
+                    <div class="user-info">
+                        <span class="user-name">DR.Magesh Kumar <span style="font-size: 0.8rem; font-weight: 500;">MBBS DDVL</span></span>
+                        <span class="user-role">Dermatologist</span>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-danger logout-btn"><i class="fa-solid fa-sign-out-alt"></i> <span class="logout-text">Logout</span></button>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                
+                <!-- REGISTRATION VIEW (Nurse Page) -->
+                <div id="registrationView" class="view-section">
+                    <div class="grid-layout" style="grid-template-columns: 1fr; max-width: 800px; margin: 0 auto;">
+                        <!-- Patient Registration Card -->
+                        <div class="card glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-user-plus"></i> New Patient Registration</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="registrationForm">
+                                    <div class="form-group">
+                                        <label for="patientName">Full Name</label>
+                                        <input type="text" id="patientName" required placeholder="e.g. Jane Doe">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="contactNumber">Contact Number</label>
+                                        <input type="tel" id="contactNumber" required placeholder="e.g. +1 234 567 8900">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="address">Address</label>
+                                        <textarea id="address" rows="2" required placeholder="Patient Address"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Register Patient</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOCTOR DASHBOARD VIEW -->
+                <div id="dashboardView" class="view-section" style="display: none;">
+                    <div class="grid-layout">
+                        <!-- Procedure & Billing Card -->
+                        <div class="card glass-card span-2">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-stethoscope"></i> Procedure & Billing</h3>
+                                <span class="selected-patient-badge" id="selectedPatientName">No patient selected</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="billing-grid">
+                                    <div class="procedure-section">
+                                        <h4>Treatment Details</h4>
+                                        <div class="form-group">
+                                            <label for="procedureNotes">Procedure / Diagnosis</label>
+                                            <textarea id="procedureNotes" rows="6" placeholder="Describe the procedure, diagnosis, or prescription..." disabled></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="fees-section">
+                                        <h4>Fees & Payment</h4>
+                                        <div class="form-group row">
+                                            <label for="doctorFee">Consultation Fee (₹)</label>
+                                            <input type="number" id="doctorFee" min="0" step="0.01" value="0" disabled>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="procedureFee">Procedure Fee (₹)</label>
+                                            <input type="number" id="procedureFee" min="0" step="0.01" value="0" disabled>
+                                        </div>
+                                        
+                                        <div class="total-section">
+                                            <span>Total Amount:</span>
+                                            <span class="total-amount" id="totalAmount">₹0.00</span>
+                                        </div>
+
+                                        <button class="btn btn-success w-100 mt-4" id="saveBillingBtn" disabled>
+                                            <i class="fa-solid fa-check-circle"></i> Save & Generate Bill
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Daily Patients List Card -->
+                        <div class="card glass-card span-2">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-clipboard-list"></i> Today's Patients</h3>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="patient-list" id="patientList">
+                                    <div class="empty-state">No patients registered today.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BILLING SUMMARY VIEW -->
+                <div id="billingSummaryView" class="view-section" style="display: none;">
+                    <div class="grid-layout" style="grid-template-columns: 1fr;">
+                        <div class="card glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-file-invoice"></i> Billing Summary</h3>
+                                <span class="selected-patient-badge" id="totalRevenue">Total: ₹0.00</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="billing-table" id="billingTable">
+                                        <thead>
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Date</th>
+                                                <th>Patient Name</th>
+                                                <th>Contact</th>
+                                                <th>Procedure</th>
+                                                <th>Consultation (₹)</th>
+                                                <th>Medicine (₹)</th>
+                                                <th>Procedure (₹)</th>
+                                                <th>Total (₹)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="billingTableBody">
+                                            <tr><td colspan="9" class="empty-state">No bills generated yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <script src="app.js?v=3"></script>
+</body>
+</html>

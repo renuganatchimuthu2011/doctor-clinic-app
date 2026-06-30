@@ -1,0 +1,765 @@
+:root {
+    --primary-color: #0d9488;
+    --primary-hover: #0f766e;
+    --secondary-color: #0ea5e9;
+    --bg-color: #f8fafc;
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --sidebar-bg: #ffffff;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: #f0fdf9;
+    color: var(--text-main);
+    background-image: 
+        /* Soft teal-to-mint gradient overlay */
+        linear-gradient(135deg, rgba(240, 253, 249, 0.95) 0%, rgba(236, 254, 255, 0.9) 50%, rgba(240, 253, 249, 0.95) 100%),
+        /* Subtle repeating dermatology pattern using SVG data URIs */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3C!-- Leaf / Botanical --%3E%3Cpath d='M30 25c0 0 8-15 20-10s5 18-5 22s-15-2-15-12z' fill='none' stroke='%230d948820' stroke-width='1.2'/%3E%3Cline x1='30' y1='25' x2='42' y2='15' stroke='%230d948818' stroke-width='0.8'/%3E%3C!-- Water Drop --%3E%3Cpath d='M140 40c0 8-6 14-6 14s-6-6-6-14a6 6 0 0112 0z' fill='none' stroke='%230ea5e918' stroke-width='1.2'/%3E%3C!-- Skin Cell / Circle --%3E%3Ccircle cx='90' cy='90' r='12' fill='none' stroke='%230d948815' stroke-width='1' stroke-dasharray='3 2'/%3E%3Ccircle cx='90' cy='90' r='5' fill='%230d948808'/%3E%3C!-- Hair Strand --%3E%3Cpath d='M170 100c0 0-2 12-5 20s-3 15-1 22' fill='none' stroke='%231e293b12' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpath d='M175 102c0 0-2 10-4 18s-2 14 0 20' fill='none' stroke='%231e293b10' stroke-width='1' stroke-linecap='round'/%3E%3C!-- Small Plus / Medical Cross --%3E%3Cline x1='35' y1='130' x2='35' y2='142' stroke='%230d948818' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='29' y1='136' x2='41' y2='136' stroke='%230d948818' stroke-width='1.5' stroke-linecap='round'/%3E%3C!-- DNA Helix snippet --%3E%3Cpath d='M120 155c4-3 8-3 12 0s8 3 12 0' fill='none' stroke='%230ea5e915' stroke-width='1'/%3E%3Cpath d='M120 160c4 3 8 3 12 0s8-3 12 0' fill='none' stroke='%230ea5e915' stroke-width='1'/%3E%3Cline x1='126' y1='155' x2='126' y2='160' stroke='%230ea5e910' stroke-width='0.7'/%3E%3Cline x1='138' y1='155' x2='138' y2='160' stroke='%230ea5e910' stroke-width='0.7'/%3E%3C!-- Another Leaf --%3E%3Cpath d='M80 170c0 0 6-12 16-8s4 14-4 17s-12-1-12-9z' fill='none' stroke='%2310b98115' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: auto, 200px 200px;
+    background-attachment: fixed;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    z-index: 100;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+}
+
+.sidebar-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--primary-color);
+}
+
+.logo-icon {
+    font-size: 1.5rem;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    text-decoration: none;
+    color: var(--text-muted);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav-item:hover, .nav-item.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.top-header {
+    height: 70px;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    gap: 1rem;
+}
+
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.search-bar {
+    position: relative;
+    flex: 1;
+    max-width: 300px;
+}
+
+.search-bar i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    outline: none;
+    background-color: white;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+    border-color: var(--primary-color);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.logout-btn {
+    margin-left: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+/* Dashboard Content */
+.dashboard-content {
+    flex: 1;
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+}
+
+.grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.span-2 {
+    grid-column: span 2;
+}
+
+/* Cards */
+.card {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: var(--card-bg);
+}
+
+.card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-header h3 i {
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-body.p-0 {
+    padding: 0;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.form-group input, 
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    outline: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    background-color: white;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
+.form-group input:disabled,
+.form-group textarea:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+}
+
+.form-group.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form-group.row label {
+    margin-bottom: 0;
+}
+
+.form-group.row input {
+    width: 150px;
+    text-align: right;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background-color: #059669;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background-color: white;
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.w-100 {
+    width: 100%;
+}
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+/* Patient List */
+.patient-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.patient-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.patient-item:last-child {
+    border-bottom: none;
+}
+
+.patient-item:hover {
+    background-color: rgba(13, 148, 136, 0.05);
+}
+
+.patient-item.selected {
+    background-color: rgba(13, 148, 136, 0.1);
+    border-left: 4px solid var(--primary-color);
+}
+
+.patient-info h4 {
+    margin-bottom: 0.25rem;
+    color: var(--text-main);
+}
+
+.patient-info p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.status-completed {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+/* Billing Grid */
+.billing-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 2rem;
+}
+
+.total-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 2px dashed var(--border-color);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.total-amount {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.selected-patient-badge {
+    background: var(--bg-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.toast {
+    background: white;
+    color: var(--text-main);
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+    border-left: 4px solid var(--primary-color);
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success { border-left-color: var(--success-color); }
+.toast.error { border-left-color: var(--danger-color); }
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Responsive */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+@media (max-width: 992px) {
+    .grid-layout {
+        grid-template-columns: 1fr;
+    }
+    .span-2 {
+        grid-column: span 1;
+    }
+    .billing-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-close-btn {
+        display: block;
+    }
+
+    .hamburger-btn {
+        display: block;
+    }
+
+    .top-header {
+        padding: 0 1rem;
+    }
+
+    .search-bar {
+        max-width: none;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    .logout-text {
+        display: none;
+    }
+
+    .logout-btn {
+        padding: 0.5rem;
+        margin-left: 0;
+    }
+
+    .dashboard-content {
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+}
+
+/* Authentication Styles */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+}
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.auth-header h2 {
+    margin-top: 1rem;
+    color: var(--text-main);
+}
+.auth-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+}
+.auth-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #dc2626;
+    box-shadow: var(--shadow-sm);
+}
+
+
+/* Search Dropdown Styles */
+.search-bar {
+    position: relative;
+}
+.search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+}
+.search-result-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+.search-result-item:last-child {
+    border-bottom: none;
+}
+.search-result-item:hover {
+    background: rgba(13, 148, 136, 0.1);
+}
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.bg-success {
+    background-color: #dcfce7;
+    color: #166534;
+}
+.bg-warning {
+    background-color: #fef08a;
+    color: #854d0e;
+}
+.p-3 {
+    padding: 1rem;
+}
+.text-muted {
+    color: var(--text-muted);
+}
+
+
+/* Billing Summary Table */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.billing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 600px;
+}
+.billing-table thead {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+.billing-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.billing-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+.billing-table tbody tr:hover {
+    background-color: rgba(13, 148, 136, 0.05);
+}
+.billing-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.billing-table .total-cell {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.billing-editable-input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    outline: none;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    background: white;
+    transition: border-color 0.2s;
+}
+.billing-editable-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+}
+
