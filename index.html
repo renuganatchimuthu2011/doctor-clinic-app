@@ -113,7 +113,11 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="contactNumber">Contact Number</label>
-                                        <input type="tel" id="contactNumber" required placeholder="e.g. +1 234 567 8900">
+                                        <input type="tel" id="contactNumber" required placeholder="e.g. 9876543210" pattern="\d{10}" maxlength="10" minlength="10" title="Please enter exactly 10 digits" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="registrationDate">Registration Date</label>
+                                        <input type="date" id="registrationDate" required>
                                     </div>
                                     <div class="form-group">
                                         <label for="address">Address</label>
@@ -171,8 +175,11 @@
 
                         <!-- Daily Patients List Card -->
                         <div class="card glass-card span-2">
-                            <div class="card-header">
-                                <h3><i class="fa-solid fa-clipboard-list"></i> Today's Patients</h3>
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <h3><i class="fa-solid fa-clipboard-list"></i> Patients List</h3>
+                                <div style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                    <input type="date" id="patientListDateFilter" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
+                                </div>
                             </div>
                             <div class="card-body p-0">
                                 <div class="patient-list" id="patientList">
@@ -189,15 +196,26 @@
                         <div class="card glass-card">
                             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                 <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                                    <h3><i class="fa-solid fa-file-invoice"></i> Billing Summary</h3>
+                                    <h3><i class="fa-solid fa-file-invoice"></i> Patient Billing Summary</h3>
                                     <div style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
                                         <input type="date" id="billingStartDate" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
                                         <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">to</span>
                                         <input type="date" id="billingEndDate" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                    <span class="selected-patient-badge" id="totalRevenue">Total: ₹0.00</span>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                        <select id="reportTypePicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; font-weight: 500;">
+                                            <option value="monthly">Monthly</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                        <input type="month" id="reportMonthPicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
+                                        <input type="week" id="reportWeekPicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; display: none;">
+                                        <input type="number" id="reportYearPicker" min="2000" max="2100" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; display: none; width: 70px;">
+                                        <button class="btn btn-primary" onclick="downloadReport()" style="padding: 4px 10px; font-size: 0.85rem;" title="Download Excel Report"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                                    </div>
+                                    <span class="selected-patient-badge" id="totalRevenue">Total Income: ₹0.00</span>
                                 </div>
                             </div>
                             <div class="card-body p-0">
@@ -213,11 +231,56 @@
                                                 <th>Consultation (₹)</th>
                                                 <th>Medicine (₹)</th>
                                                 <th>Procedure (₹)</th>
-                                                <th>Total (₹)</th>
+                                                <th>Total Income (₹)</th>
                                             </tr>
                                         </thead>
                                         <tbody id="billingTableBody">
                                             <tr><td colspan="9" class="empty-state">No bills generated yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- STOCK BILLING SUMMARY CARD -->
+                        <div class="card glass-card" style="margin-top: 1.5rem;">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                    <h3><i class="fa-solid fa-boxes-stacked"></i> Stock Billing Summary</h3>
+                                    <div style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                        <input type="date" id="stockBillingStartDate" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
+                                        <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">to</span>
+                                        <input type="date" id="stockBillingEndDate" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.7); padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                        <select id="stockReportTypePicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; font-weight: 500;">
+                                            <option value="monthly">Monthly</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                        <input type="month" id="stockReportMonthPicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px;">
+                                        <input type="week" id="stockReportWeekPicker" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; display: none;">
+                                        <input type="number" id="stockReportYearPicker" min="2000" max="2100" style="border: none; background: transparent; font-family: inherit; outline: none; padding: 0 4px; display: none; width: 70px;">
+                                        <button class="btn btn-primary" onclick="downloadStockReport()" style="padding: 4px 10px; font-size: 0.85rem;" title="Download Excel Report"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                                    </div>
+                                    <span class="selected-patient-badge" id="stockNetIncomeBadge">Net Income: ₹0.00</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="billing-table" id="stockBillingTable">
+                                        <thead>
+                                            <tr>
+                                                <th>S.No</th>
+                                                <th>Purchase Date</th>
+                                                <th>Drug Purchased Amount (₹)</th>
+                                                <th>Due Amount (₹)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stockBillingTableBody">
+                                            <tr><td colspan="4" class="empty-state">No stock bills generated yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -238,10 +301,6 @@
                             <div class="card-body">
                                 <form id="addPurchaseForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                     <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="purchaseItemName">Item Name</label>
-                                        <input type="text" id="purchaseItemName" required placeholder="e.g. Paracetamol 500mg">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
                                         <label for="purchaseCategory">Category</label>
                                         <select id="purchaseCategory" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; background-color: rgba(255, 255, 255, 0.7);">
                                             <option value="" disabled selected>Select Category</option>
@@ -249,6 +308,10 @@
                                             <option value="Consumable">Consumable</option>
                                             <option value="Equipment">Equipment</option>
                                         </select>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="purchaseItemName">Item Name</label>
+                                        <input type="text" id="purchaseItemName" required placeholder="e.g. Paracetamol 500mg">
                                     </div>
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label for="purchaseQuantity">Quantity Bought</label>
@@ -263,8 +326,8 @@
                                         <input type="date" id="purchaseDate" required>
                                     </div>
                                     <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="purchaseAmount">Purchase Amount (₹)</label>
-                                        <input type="number" id="purchaseAmount" required min="0" step="0.01" value="0.00">
+                                        <label for="purchaseAmount">Drug Purchase Amount (₹)</label>
+                                        <input type="number" id="purchaseAmount" class="form-control" placeholder="0.00" min="0" step="0.01" value="0.00">
                                     </div>
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label for="purchasePaidAmount">Paid Amount (₹)</label>
@@ -313,7 +376,7 @@
                                                 <th>Item Name</th>
                                                 <th>Category</th>
                                                 <th>Qty</th>
-                                                <th>Bill Amt (₹)</th>
+                                                <th>Drug Purchase Amount (₹)</th>
                                                 <th>Paid (₹)</th>
                                                 <th>Due (₹)</th>
                                                 <th>Due Date</th>
@@ -324,30 +387,6 @@
                                         </thead>
                                         <tbody id="purchaseTableBody">
                                             <tr><td colspan="12" class="empty-state">Loading purchases...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Current Stock Inventory Card -->
-                        <div class="card glass-card">
-                            <div class="card-header">
-                                <h3><i class="fa-solid fa-boxes-stacked"></i> Current Stock Inventory</h3>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="billing-table" id="stockTable">
-                                        <thead>
-                                            <tr>
-                                                <th>Item Name</th>
-                                                <th>Category</th>
-                                                <th style="text-align: right;">Total Quantity in Stock</th>
-                                                <th style="width: 50px; text-align: center;">Act</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="stockTableBody">
-                                            <tr><td colspan="4" class="empty-state">Loading inventory...</td></tr>
                                         </tbody>
                                     </table>
                                 </div>

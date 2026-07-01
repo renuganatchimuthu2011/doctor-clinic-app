@@ -14,7 +14,6 @@ const db = firebase.firestore();
 // State Management
 let patients = [];
 let users = [];
-let stockItems = [];
 let purchases = [];
 let currentUser = localStorage.getItem('clinic_current_user');
 let selectedPatientId = null;
@@ -36,6 +35,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const registrationForm = document.getElementById('registrationForm');
 const patientList = document.getElementById('patientList');
 const searchPatient = document.getElementById('searchPatient');
+const patientListDateFilter = document.getElementById('patientListDateFilter');
 const searchResults = document.getElementById('searchResults');
 
 // Mobile Sidebar Elements
@@ -66,6 +66,14 @@ const saveBillingBtn = document.getElementById('saveBillingBtn');
 const billingStartDate = document.getElementById('billingStartDate');
 const billingEndDate = document.getElementById('billingEndDate');
 
+// Stock Billing Summary Elements
+const stockBillingStartDate = document.getElementById('stockBillingStartDate');
+const stockBillingEndDate = document.getElementById('stockBillingEndDate');
+const stockReportTypePicker = document.getElementById('stockReportTypePicker');
+const stockReportMonthPicker = document.getElementById('stockReportMonthPicker');
+const stockReportWeekPicker = document.getElementById('stockReportWeekPicker');
+const stockReportYearPicker = document.getElementById('stockReportYearPicker');
+
 // Stock Elements
 const addPurchaseForm = document.getElementById('addPurchaseForm');
 const purchaseItemName = document.getElementById('purchaseItemName');
@@ -80,19 +88,97 @@ const purchaseDueDate = document.getElementById('purchaseDueDate');
 const purchaseDueAmount = document.getElementById('purchaseDueAmount');
 const purchasePaymentStatus = document.getElementById('purchasePaymentStatus');
 const purchaseTableBody = document.getElementById('purchaseTableBody');
-const stockTableBody = document.getElementById('stockTableBody');
+
+if(purchaseAmount) purchaseAmount.addEventListener('input', calculatePurchaseDue);
+if(purchasePaidAmount) purchasePaidAmount.addEventListener('input', calculatePurchaseDue);
+if(purchasePaymentOption) purchasePaymentOption.addEventListener('change', calculatePurchaseDue);
 
 // Initialize App
 function init() {
     // Set default date filter to today
     const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const todayStr = today.toISOString().split('T')[0];
+    if(billingStartDate) billingStartDate.value = todayStr;
+    if(billingEndDate) billingEndDate.value = todayStr;
+    if(stockBillingStartDate) stockBillingStartDate.value = todayStr;
+    if(stockBillingEndDate) stockBillingEndDate.value = todayStr;
     
-    if (billingStartDate) billingStartDate.value = todayStr;
-    if (billingEndDate) billingEndDate.value = todayStr;
+    const reportTypePicker = document.getElementById('reportTypePicker');
+    const reportMonthPicker = document.getElementById('reportMonthPicker');
+    const reportWeekPicker = document.getElementById('reportWeekPicker');
+    const reportYearPicker = document.getElementById('reportYearPicker');
+
+    if(reportTypePicker) {
+        reportTypePicker.addEventListener('change', () => {
+            if(reportMonthPicker) reportMonthPicker.style.display = 'none';
+            if(reportWeekPicker) reportWeekPicker.style.display = 'none';
+            if(reportYearPicker) reportYearPicker.style.display = 'none';
+            
+            if (reportTypePicker.value === 'monthly') {
+                if(reportMonthPicker) reportMonthPicker.style.display = 'inline-block';
+            } else if (reportTypePicker.value === 'weekly') {
+                if(reportWeekPicker) reportWeekPicker.style.display = 'inline-block';
+            } else if (reportTypePicker.value === 'yearly') {
+                if(reportYearPicker) reportYearPicker.style.display = 'inline-block';
+            }
+            updateTableFromReportPicker();
+        });
+    }
+
+    if(reportMonthPicker) {
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        reportMonthPicker.value = `${today.getFullYear()}-${mm}`;
+        reportMonthPicker.addEventListener('change', updateTableFromReportPicker);
+    }
+    if(reportYearPicker) {
+        reportYearPicker.value = today.getFullYear();
+        reportYearPicker.addEventListener('change', updateTableFromReportPicker);
+    }
+    if(reportWeekPicker) {
+        const d = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        reportWeekPicker.value = `${today.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+        reportWeekPicker.addEventListener('change', updateTableFromReportPicker);
+    }
+
+    if(stockReportTypePicker) {
+        stockReportTypePicker.addEventListener('change', () => {
+            if(stockReportMonthPicker) stockReportMonthPicker.style.display = 'none';
+            if(stockReportWeekPicker) stockReportWeekPicker.style.display = 'none';
+            if(stockReportYearPicker) stockReportYearPicker.style.display = 'none';
+            
+            if (stockReportTypePicker.value === 'monthly') {
+                if(stockReportMonthPicker) stockReportMonthPicker.style.display = 'inline-block';
+            } else if (stockReportTypePicker.value === 'weekly') {
+                if(stockReportWeekPicker) stockReportWeekPicker.style.display = 'inline-block';
+            } else if (stockReportTypePicker.value === 'yearly') {
+                if(stockReportYearPicker) stockReportYearPicker.style.display = 'inline-block';
+            }
+            updateStockTableFromReportPicker();
+        });
+    }
+
+    if(stockReportMonthPicker) {
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        stockReportMonthPicker.value = `${today.getFullYear()}-${mm}`;
+        stockReportMonthPicker.addEventListener('change', updateStockTableFromReportPicker);
+    }
+    if(stockReportYearPicker) {
+        stockReportYearPicker.value = today.getFullYear();
+        stockReportYearPicker.addEventListener('change', updateStockTableFromReportPicker);
+    }
+    if(stockReportWeekPicker) {
+        const d = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        stockReportWeekPicker.value = `${today.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+        stockReportWeekPicker.addEventListener('change', updateStockTableFromReportPicker);
+    }
 
     if (currentUser) {
         showApp();
@@ -133,19 +219,6 @@ function init() {
         // Check if it's an index error (though shouldn't be for this simple query unless multiple orderBys)
     });
 
-    // Listen for stock items
-    db.collection('stock').orderBy('name', 'asc').onSnapshot(snapshot => {
-        stockItems = [];
-        snapshot.forEach(doc => {
-            stockItems.push({ id: doc.id, ...doc.data() });
-        });
-        if(stockDetailsView.style.display === 'block') {
-            renderStockList();
-        }
-    }, error => {
-        console.error("Error listening to stock:", error);
-    });
-
     // Listen for purchases
     db.collection('purchases').orderBy('purchaseDate', 'desc').onSnapshot(snapshot => {
         purchases = [];
@@ -154,6 +227,10 @@ function init() {
         });
         if(stockDetailsView.style.display === 'block') {
             renderPurchaseList();
+        }
+        if(billingSummaryView.style.display === 'block') {
+            renderStockBillingSummary();
+            renderBillingSummary();
         }
     }, error => {
         console.error("Error listening to purchases:", error);
@@ -166,6 +243,8 @@ function init() {
 function attachEventListeners() {
     if (billingStartDate) billingStartDate.addEventListener('change', renderBillingSummary);
     if (billingEndDate) billingEndDate.addEventListener('change', renderBillingSummary);
+    if (stockBillingStartDate) stockBillingStartDate.addEventListener('change', renderStockBillingSummary);
+    if (stockBillingEndDate) stockBillingEndDate.addEventListener('change', renderStockBillingSummary);
     
     // Auth Listeners
     authForm.addEventListener('submit', handleAuth);
@@ -193,6 +272,15 @@ function attachEventListeners() {
     saveBillingBtn.addEventListener('click', saveBillingAndProcedure);
     searchPatient.addEventListener('input', handleSearch);
     
+    if (patientListDateFilter) {
+        const d = new Date();
+        const defaultDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        patientListDateFilter.value = defaultDate;
+        patientListDateFilter.addEventListener('change', () => {
+            renderPatientList(searchPatient.value);
+        });
+    }
+
     // Mobile Sidebar Listeners
     if(hamburgerBtn) hamburgerBtn.addEventListener('click', openSidebar);
     if(sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
@@ -327,6 +415,7 @@ function switchView(view) {
         navBillingSummary.classList.add('active');
         if(navStockDetails) navStockDetails.classList.remove('active');
         renderBillingSummary();
+        renderStockBillingSummary();
     } else if (view === 'stock') {
         registrationView.style.display = 'none';
         dashboardView.style.display = 'none';
@@ -336,7 +425,6 @@ function switchView(view) {
         navDashboard.classList.remove('active');
         navBillingSummary.classList.remove('active');
         if(navStockDetails) navStockDetails.classList.add('active');
-        renderStockList();
         renderPurchaseList();
     }
     
@@ -354,10 +442,25 @@ async function handleRegistration(e) {
     const name = document.getElementById('patientName').value.trim();
     const contact = document.getElementById('contactNumber').value.trim();
     const address = document.getElementById('address').value.trim();
+    const dateInput = document.getElementById('registrationDate').value;
 
-    if(!name || !contact || !address) {
+    if(!name || !contact || !address || !dateInput) {
         if (submitBtn) submitBtn.disabled = false;
         return;
+    }
+
+    if (contact.length !== 10 || !/^\d{10}$/.test(contact)) {
+        showToast('Contact number must be exactly 10 digits.', 'error');
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+    }
+
+    let finalDate = new Date().toISOString();
+    if (dateInput) {
+        const d = new Date(dateInput);
+        const now = new Date();
+        d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+        finalDate = d.toISOString();
     }
 
     try {
@@ -365,7 +468,7 @@ async function handleRegistration(e) {
             name,
             contact,
             address,
-            date: new Date().toISOString(),
+            date: finalDate,
             status: 'pending',
             procedure: '',
             fees: {
@@ -394,11 +497,23 @@ function renderPatientList(searchTerm = '') {
     patientList.innerHTML = '';
     
     const phoneSearchTerm = searchTerm.replace(/\D/g, '');
+    const selectedDate = patientListDateFilter ? patientListDateFilter.value : '';
+
     const filteredPatients = patients.filter(p => {
         const nameMatch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
         const phoneMatch = phoneSearchTerm && p.contact.replace(/\D/g, '').includes(phoneSearchTerm);
         const rawContactMatch = p.contact.toLowerCase().includes(searchTerm.toLowerCase());
-        return nameMatch || phoneMatch || rawContactMatch;
+        const searchMatch = nameMatch || phoneMatch || rawContactMatch;
+
+        if (selectedDate) {
+            const pDate = new Date(p.date);
+            const pDateStr = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}-${String(pDate.getDate()).padStart(2, '0')}`;
+            if (pDateStr !== selectedDate) {
+                return false;
+            }
+        }
+
+        return searchMatch;
     });
 
     if (filteredPatients.length === 0) {
@@ -417,7 +532,10 @@ function renderPatientList(searchTerm = '') {
         item.innerHTML = `
             <div class="patient-info">
                 <h4>${patient.name}</h4>
-                <p><i class="fa-solid fa-phone" style="font-size:0.75rem; margin-right:4px;"></i>${patient.contact}</p>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <p style="margin: 0;"><i class="fa-solid fa-phone" style="font-size:0.75rem; margin-right:4px;"></i>${patient.contact}</p>
+                    <p style="margin: 0;"><i class="fa-solid fa-calendar-day" style="font-size:0.75rem; margin-right:4px;"></i>${new Date(patient.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                </div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-trash" onclick="deletePatientById(event, '${patient.id}')" style="cursor: pointer; color: var(--danger-color, #dc3545);" title="Delete Patient"></i>
@@ -554,7 +672,7 @@ function renderBillingSummary() {
         let dateMsg = 'the selected date range';
         if (startDateValue === endDateValue && startDateValue) dateMsg = new Date(startDateValue).toLocaleDateString('en-IN');
         billingTableBody.innerHTML = `<tr><td colspan="9" class="empty-state">No bills generated for ${dateMsg}.</td></tr>`;
-        if(totalRevenue) totalRevenue.textContent = 'Total: \u20b90.00';
+        if(totalRevenue) totalRevenue.textContent = 'Total Income: \u20b90.00';
         return;
     }
 
@@ -587,6 +705,25 @@ function renderBillingSummary() {
         billingTableBody.appendChild(row);
     });
 
+    // Calculate Drug Purchases for the same period
+    let totalPurchases = 0;
+    let filteredPurchases = purchases;
+    if (startDateValue || endDateValue) {
+        filteredPurchases = purchases.filter(p => {
+            const pDateStr = p.purchaseDate;
+            let include = true;
+            if (startDateValue && pDateStr < startDateValue) include = false;
+            if (endDateValue && pDateStr > endDateValue) include = false;
+            return include;
+        });
+    }
+    
+    filteredPurchases.forEach(p => {
+        totalPurchases += (parseFloat(p.purchaseAmount) || 0);
+    });
+
+    const netIncome = grandTotal - totalPurchases;
+
     // Append a footer row for totals
     const totalRow = document.createElement('tr');
     totalRow.style.fontWeight = 'bold';
@@ -601,12 +738,346 @@ function renderBillingSummary() {
     billingTableBody.appendChild(totalRow);
 
     if(totalRevenue) {
-        totalRevenue.textContent = `Total: \u20b9${grandTotal.toFixed(2)}`;
+        totalRevenue.textContent = `Total Income: \u20b9${grandTotal.toFixed(2)}`;
         totalRevenue.style.color = 'var(--primary-color)';
         totalRevenue.style.borderColor = 'var(--primary-color)';
         totalRevenue.style.fontWeight = '700';
     }
 }
+
+function renderStockBillingSummary() {
+    const stockBillingTableBody = document.getElementById('stockBillingTableBody');
+    if (!stockBillingTableBody) return;
+
+    const startDateValue = stockBillingStartDate ? stockBillingStartDate.value : '';
+    const endDateValue = stockBillingEndDate ? stockBillingEndDate.value : '';
+
+    let filteredPurchases = purchases;
+    if (startDateValue || endDateValue) {
+        filteredPurchases = purchases.filter(p => {
+            const pDateStr = p.purchaseDate;
+            let include = true;
+            if (startDateValue && pDateStr < startDateValue) include = false;
+            if (endDateValue && pDateStr > endDateValue) include = false;
+            return include;
+        });
+    }
+
+    let sumDrugPurchases = 0;
+    let sumDueAmount = 0;
+
+    if (filteredPurchases.length === 0) {
+        let dateMsg = 'the selected date range';
+        if (startDateValue === endDateValue && startDateValue) dateMsg = new Date(startDateValue).toLocaleDateString('en-IN');
+        stockBillingTableBody.innerHTML = `<tr><td colspan="5" class="empty-state">No stock bills generated for ${dateMsg}.</td></tr>`;
+    } else {
+        stockBillingTableBody.innerHTML = '';
+        filteredPurchases.forEach((p, index) => {
+            const purchasedAmount = parseFloat(p.purchaseAmount) || 0;
+            const dueAmount = parseFloat(p.dueAmount) || 0;
+            sumDrugPurchases += purchasedAmount;
+            sumDueAmount += dueAmount;
+
+            const pDate = new Date(p.purchaseDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${pDate}</td>
+                <td>\u20b9${purchasedAmount.toFixed(2)}</td>
+                <td><span style="color: ${dueAmount > 0 ? 'var(--danger-color)' : 'inherit'};">\u20b9${dueAmount.toFixed(2)}</span></td>
+            `;
+            stockBillingTableBody.appendChild(row);
+        });
+    }
+
+    // We also need to calculate total patient income for this same period to show Net Income
+    let billedPatients = patients.filter(p => p.status === 'completed');
+    if (startDateValue || endDateValue) {
+        billedPatients = billedPatients.filter(p => {
+            const pDate = new Date(p.date);
+            const pDateStr = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}-${String(pDate.getDate()).padStart(2, '0')}`;
+            let include = true;
+            if (startDateValue && pDateStr < startDateValue) include = false;
+            if (endDateValue && pDateStr > endDateValue) include = false;
+            return include;
+        });
+    }
+    let grandTotal = 0;
+    billedPatients.forEach(p => { grandTotal += (p.fees.total || 0); });
+    
+    const netIncome = grandTotal - sumDrugPurchases;
+
+    // Grand Total Footer only if there are purchases
+    if (filteredPurchases.length > 0) {
+        const totalStockRow = document.createElement('tr');
+        totalStockRow.style.fontWeight = 'bold';
+        totalStockRow.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
+        totalStockRow.innerHTML = `
+            <td colspan="2" style="text-align: right;">Grand Total:</td>
+            <td style="color: var(--danger-color);">\u20b9${sumDrugPurchases.toFixed(2)}</td>
+            <td style="color: var(--danger-color);">\u20b9${sumDueAmount.toFixed(2)}</td>
+        `;
+        stockBillingTableBody.appendChild(totalStockRow);
+    }
+
+    const stockNetIncomeBadge = document.getElementById('stockNetIncomeBadge');
+    if (stockNetIncomeBadge) {
+        stockNetIncomeBadge.textContent = `Net Income: \u20b9${netIncome.toFixed(2)}`;
+        if (netIncome >= 0) {
+            stockNetIncomeBadge.style.color = 'var(--primary-color)';
+            stockNetIncomeBadge.style.borderColor = 'var(--primary-color)';
+        } else {
+            stockNetIncomeBadge.style.color = 'var(--danger-color)';
+            stockNetIncomeBadge.style.borderColor = 'var(--danger-color)';
+        }
+        stockNetIncomeBadge.style.fontWeight = '700';
+    }
+}
+
+function updateTableFromReportPicker() {
+    const typePicker = document.getElementById('reportTypePicker');
+    if (!typePicker) return;
+    const type = typePicker.value;
+    let start = '';
+    let end = '';
+    
+    if (type === 'monthly') {
+        const val = document.getElementById('reportMonthPicker')?.value;
+        if (val) {
+            const [y, m] = val.split('-');
+            const lastDay = new Date(y, m, 0);
+            start = `${y}-${m}-01`;
+            end = `${y}-${m}-${String(lastDay.getDate()).padStart(2, '0')}`;
+        }
+    } else if (type === 'yearly') {
+        const val = document.getElementById('reportYearPicker')?.value;
+        if (val) {
+            start = `${val}-01-01`;
+            end = `${val}-12-31`;
+        }
+    } else if (type === 'weekly') {
+        const val = document.getElementById('reportWeekPicker')?.value;
+        if (val) {
+            const y = parseInt(val.substring(0, 4));
+            const w = parseInt(val.substring(6, 8));
+            
+            const d = new Date(y, 0, 4); 
+            const dayNum = d.getDay() || 7;
+            d.setDate(d.getDate() - dayNum + 1 + (w - 1) * 7);
+            
+            const startStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            start = startStr;
+            
+            const endD = new Date(d);
+            endD.setDate(d.getDate() + 6);
+            end = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
+        }
+    }
+    
+    if (start && end) {
+        if (billingStartDate) billingStartDate.value = start;
+        if (billingEndDate) billingEndDate.value = end;
+        renderBillingSummary();
+    }
+}
+
+// Attach listeners to report pickers
+document.getElementById('reportMonthPicker')?.addEventListener('change', updateTableFromReportPicker);
+document.getElementById('reportYearPicker')?.addEventListener('change', updateTableFromReportPicker);
+document.getElementById('reportWeekPicker')?.addEventListener('change', updateTableFromReportPicker);
+
+window.downloadReport = function() {
+    const typePicker = document.getElementById('reportTypePicker');
+    const type = typePicker ? typePicker.value : 'monthly';
+    
+    let selectedValue = '';
+    let periodName = '';
+    
+    if (type === 'monthly') {
+        const picker = document.getElementById('reportMonthPicker');
+        if (!picker || !picker.value) return alert("Please select a month.");
+        selectedValue = picker.value;
+        periodName = `Month: ${selectedValue}`;
+    } else if (type === 'weekly') {
+        const picker = document.getElementById('reportWeekPicker');
+        if (!picker || !picker.value) return alert("Please select a week.");
+        selectedValue = picker.value;
+        periodName = `Week: ${selectedValue}`;
+    } else if (type === 'yearly') {
+        const picker = document.getElementById('reportYearPicker');
+        if (!picker || !picker.value) return alert("Please select a year.");
+        selectedValue = picker.value;
+        periodName = `Year: ${selectedValue}`;
+    }
+
+    let totalPatients = 0;
+    let consultationFees = 0;
+    let medicineFees = 0;
+    let procedureFees = 0;
+    let totalIncome = 0;
+
+    patients.filter(p => p.status === 'completed').forEach(p => {
+        if (!p.date) return;
+        
+        let matches = false;
+        if (type === 'monthly') {
+            const billMonth = p.date.substring(0, 7);
+            matches = (billMonth === selectedValue);
+        } else if (type === 'yearly') {
+            const billYear = p.date.substring(0, 4);
+            matches = (billYear === selectedValue);
+        } else if (type === 'weekly') {
+            const pDate = new Date(p.date);
+            const d = new Date(Date.UTC(pDate.getFullYear(), pDate.getMonth(), pDate.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+            const billWeek = `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+            matches = (billWeek === selectedValue);
+        }
+
+        if (matches) {
+            totalPatients++;
+            consultationFees += (parseFloat(p.fees.doctor) || 0);
+            medicineFees += (parseFloat(p.fees.medicine) || 0);
+            procedureFees += (parseFloat(p.fees.procedure) || 0);
+            totalIncome += (parseFloat(p.fees.total) || 0);
+        }
+    });
+
+    let totalPurchasesAmount = 0;
+    purchases.forEach(p => {
+        if (!p.purchaseDate) return;
+        
+        let matches = false;
+        if (type === 'monthly') {
+            const billMonth = p.purchaseDate.substring(0, 7);
+            matches = (billMonth === selectedValue);
+        } else if (type === 'yearly') {
+            const billYear = p.purchaseDate.substring(0, 4);
+            matches = (billYear === selectedValue);
+        } else if (type === 'weekly') {
+            const pDate = new Date(p.purchaseDate);
+            const d = new Date(Date.UTC(pDate.getFullYear(), pDate.getMonth(), pDate.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+            const billWeek = `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+            matches = (billWeek === selectedValue);
+        }
+
+        if (matches) {
+            totalPurchasesAmount += (parseFloat(p.purchaseAmount) || 0);
+        }
+    });
+
+    const netIncome = totalIncome - totalPurchasesAmount;
+
+    if (totalPatients === 0 && totalPurchasesAmount === 0) {
+        alert(`No data found for the selected ${type} period.`);
+        return;
+    }
+
+    const headers = ["Period", "Total Patients", "Consultation fees", "Medicine fees", "Procedure fees", "Total Income", "Drug Purchases", "Net Income"];
+    const row = [periodName, totalPatients, consultationFees.toFixed(2), medicineFees.toFixed(2), procedureFees.toFixed(2), totalIncome.toFixed(2), totalPurchasesAmount.toFixed(2), netIncome.toFixed(2)];
+    const csvContent = headers.join(",") + "\n" + row.join(",");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Report_${selectedValue}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+function updateStockTableFromReportPicker() {
+    const typePicker = document.getElementById('stockReportTypePicker');
+    if (!typePicker) return;
+    const type = typePicker.value;
+    let start = '';
+    let end = '';
+    
+    if (type === 'monthly') {
+        const val = document.getElementById('stockReportMonthPicker')?.value;
+        if (val) {
+            const [y, m] = val.split('-');
+            const lastDay = new Date(y, m, 0);
+            start = `${y}-${m}-01`;
+            end = `${y}-${m}-${String(lastDay.getDate()).padStart(2, '0')}`;
+        }
+    } else if (type === 'yearly') {
+        const val = document.getElementById('stockReportYearPicker')?.value;
+        if (val) {
+            start = `${val}-01-01`;
+            end = `${val}-12-31`;
+        }
+    } else if (type === 'weekly') {
+        const val = document.getElementById('stockReportWeekPicker')?.value;
+        if (val) {
+            const y = parseInt(val.substring(0, 4));
+            const w = parseInt(val.substring(6, 8));
+            
+            const d = new Date(y, 0, 4); 
+            const dayNum = d.getDay() || 7;
+            d.setDate(d.getDate() - dayNum + 1 + (w - 1) * 7);
+            
+            const startStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            start = startStr;
+            
+            const endD = new Date(d);
+            endD.setDate(d.getDate() + 6);
+            end = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
+        }
+    }
+    
+    if (start && end) {
+        if (stockBillingStartDate) stockBillingStartDate.value = start;
+        if (stockBillingEndDate) stockBillingEndDate.value = end;
+        renderStockBillingSummary();
+    }
+}
+
+document.getElementById('stockReportMonthPicker')?.addEventListener('change', updateStockTableFromReportPicker);
+document.getElementById('stockReportYearPicker')?.addEventListener('change', updateStockTableFromReportPicker);
+document.getElementById('stockReportWeekPicker')?.addEventListener('change', updateStockTableFromReportPicker);
+
+window.downloadStockReport = function() {
+    const stockBillingTableBody = document.getElementById('stockBillingTableBody');
+    if (!stockBillingTableBody) return;
+    
+    let csvContent = "S.No,Purchase Date,Drug Purchased Amount,Due Amount\n";
+    const rows = stockBillingTableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = Array.from(cols).map(col => `"${col.innerText.replace(/"/g, '""').replace(/₹/g, '').replace(/\u20b9/g, '').trim()}"`);
+        csvContent += rowData.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    
+    const typePicker = document.getElementById('stockReportTypePicker');
+    let type = typePicker ? typePicker.value : 'export';
+    let val = '';
+    if (type === 'monthly') val = document.getElementById('stockReportMonthPicker')?.value || '';
+    if (type === 'weekly') val = document.getElementById('stockReportWeekPicker')?.value || '';
+    if (type === 'yearly') val = document.getElementById('stockReportYearPicker')?.value || '';
+    
+    link.setAttribute("download", `Stock_Billing_Summary_${val || type}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
 
 // --- Stock & Purchase Logic ---
 async function handleAddPurchase(e) {
@@ -632,12 +1103,13 @@ async function handleAddPurchase(e) {
     const dueAmount = amount - paid;
     
     let paymentStatus = 'Not Paid';
-    if (pOption === 'GPay' || pOption === 'Cash') {
-        paymentStatus = 'Paid';
-    } else {
-        paymentStatus = 'Not Paid';
+    if (pOption === '') {
+        paymentStatus = '';
         pOption = '-';
+    } else if (paid > 0 && (pOption === 'GPay' || pOption === 'Cash')) {
+        paymentStatus = 'Paid';
     }
+
 
     try {
         // 1. Add to Purchase History
@@ -655,27 +1127,6 @@ async function handleAddPurchase(e) {
             paymentStatus,
             createdAt: new Date().toISOString()
         });
-
-        // 2. Increment Stock Inventory
-        // Check if item already exists in stock
-        const stockRef = db.collection('stock');
-        const querySnapshot = await stockRef.where('name', '==', itemName).where('category', '==', category).get();
-        
-        if (!querySnapshot.empty) {
-            // Update existing stock
-            const stockDoc = querySnapshot.docs[0];
-            const currentQty = stockDoc.data().quantity || 0;
-            await stockRef.doc(stockDoc.id).update({
-                quantity: currentQty + quantity
-            });
-        } else {
-            // Create new stock entry
-            await stockRef.add({
-                name: itemName,
-                category: category,
-                quantity: quantity
-            });
-        }
 
         addPurchaseForm.reset();
         if(purchaseDueAmount) purchaseDueAmount.value = '0.00';
@@ -709,9 +1160,12 @@ function renderPurchaseList() {
             : `-`;
         const dueDateHtml = p.dueDate ? p.dueDate : `-`;
             
-        const statusBadge = p.paymentStatus === 'Paid' 
-            ? `<span class="badge bg-success">Paid</span>` 
-            : `<span class="badge bg-danger">Not Paid</span>`;
+        let statusBadge = '';
+        if (p.paymentStatus === 'Paid') {
+            statusBadge = `<span class="badge bg-success">Paid</span>`;
+        } else if (p.paymentStatus === 'Not Paid') {
+            statusBadge = `<span class="badge bg-danger">Not Paid</span>`;
+        }
 
         row.innerHTML = `
             <td style="white-space: nowrap;">${new Date(p.purchaseDate).toLocaleDateString('en-IN')}</td>
@@ -733,31 +1187,6 @@ function renderPurchaseList() {
     });
 }
 
-function renderStockList() {
-    if (!stockTableBody) return;
-    
-    if (stockItems.length === 0) {
-        stockTableBody.innerHTML = '<tr><td colspan="4" class="empty-state">No items in inventory. Add a purchase first.</td></tr>';
-        return;
-    }
-
-    stockTableBody.innerHTML = '';
-    stockItems.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${item.name}</strong></td>
-            <td><span class="badge bg-secondary">${item.category}</span></td>
-            <td style="text-align: right; font-size: 1.1rem; font-weight: 600; color: var(--primary-color);">
-                ${item.quantity}
-            </td>
-            <td style="text-align: center;">
-                <i class="fa-solid fa-trash" onclick="deleteStockItem('${item.id}')" style="cursor: pointer; color: var(--danger-color);" title="Delete Inventory Item"></i>
-            </td>
-        `;
-        stockTableBody.appendChild(row);
-    });
-}
-
 function calculatePurchaseDue() {
     const amt = parseFloat(purchaseAmount.value) || 0;
     const paid = parseFloat(purchasePaidAmount.value) || 0;
@@ -768,7 +1197,10 @@ function calculatePurchaseDue() {
     
     if (purchasePaymentStatus && purchasePaymentOption) {
         const mode = purchasePaymentOption.value;
-        if (mode === 'GPay' || mode === 'Cash') {
+        if (mode === '') {
+            purchasePaymentStatus.value = '';
+            purchasePaymentStatus.style.color = '';
+        } else if (paid > 0 && (mode === 'GPay' || mode === 'Cash')) {
             purchasePaymentStatus.value = 'Paid';
             purchasePaymentStatus.style.color = 'var(--success-color, #198754)';
         } else {
@@ -786,17 +1218,6 @@ window.deletePurchase = async function(id) {
     } catch (error) {
         console.error("Error deleting purchase: ", error);
         showToast('Error deleting purchase', 'error');
-    }
-};
-
-window.deleteStockItem = async function(id) {
-    if (!confirm("Are you sure you want to completely delete this item from the inventory list?")) return;
-    try {
-        await db.collection('stock').doc(id).delete();
-        showToast('Inventory item deleted', 'success');
-    } catch (error) {
-        console.error("Error deleting stock item: ", error);
-        showToast('Error deleting inventory item', 'error');
     }
 };
 
