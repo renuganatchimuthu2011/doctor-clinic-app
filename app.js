@@ -18,6 +18,10 @@ let purchases = [];
 let currentUser = localStorage.getItem('clinic_current_user');
 let selectedPatientId = null;
 let authMode = 'login'; // 'login' or 'signup'
+let currentPharmacyItems = [];
+let currentPharmacyBillNumber = "PH-0001";
+let pharmacyBillsList = [];
+let pharmacyBillsUnsubscribe = null;
 
 // Auth Elements
 const authContainer = document.getElementById('authContainer');
@@ -49,10 +53,12 @@ const navRegistration = document.getElementById('navRegistration');
 const navDashboard = document.getElementById('navDashboard');
 const navBillingSummary = document.getElementById('navBillingSummary');
 const navStockDetails = document.getElementById('navStockDetails');
+const navPharmacyBilling = document.getElementById('navPharmacyBilling');
 const registrationView = document.getElementById('registrationView');
 const dashboardView = document.getElementById('dashboardView');
 const billingSummaryView = document.getElementById('billingSummaryView');
 const stockDetailsView = document.getElementById('stockDetailsView');
+const pharmacyBillingView = document.getElementById('pharmacyBillingView');
 
 // Billing & Procedure Elements
 const selectedPatientNameBadge = document.getElementById('selectedPatientName');
@@ -89,6 +95,30 @@ const purchaseDueAmount = document.getElementById('purchaseDueAmount');
 const purchasePaymentStatus = document.getElementById('purchasePaymentStatus');
 const purchaseTableBody = document.getElementById('purchaseTableBody');
 
+// Pharmacy Billing Elements
+const pharmacyBillNumber = document.getElementById('pharmacyBillNumber');
+const pharmacyPatientName = document.getElementById('pharmacyPatientName');
+const pharmacyBillDate = document.getElementById('pharmacyBillDate');
+const addMedicineForm = document.getElementById('addMedicineForm');
+const medName = document.getElementById('medName');
+const medQty = document.getElementById('medQty');
+const medPrice = document.getElementById('medPrice');
+const pharmacyItemsTableBody = document.getElementById('pharmacyItemsTableBody');
+const pharmacyGrandTotal = document.getElementById('pharmacyGrandTotal');
+const newPharmacyBillBtn = document.getElementById('newPharmacyBillBtn');
+const savePharmacyBillBtn = document.getElementById('savePharmacyBillBtn');
+const printPharmacyBillBtn = document.getElementById('printPharmacyBillBtn');
+const pharmacyHistoryTableBody = document.getElementById('pharmacyHistoryTableBody');
+const pharmacyHistoryDateFilter = document.getElementById('pharmacyHistoryDateFilter');
+const pharmacyHistoryGrandTotal = document.getElementById('pharmacyHistoryGrandTotal');
+
+// Print Elements
+const printBillNo = document.getElementById('printBillNo');
+const printBillDate = document.getElementById('printBillDate');
+const printPatientName = document.getElementById('printPatientName');
+const printTableBody = document.getElementById('printTableBody');
+const printGrandTotal = document.getElementById('printGrandTotal');
+
 if(purchaseAmount) purchaseAmount.addEventListener('input', calculatePurchaseDue);
 if(purchasePaidAmount) purchasePaidAmount.addEventListener('input', calculatePurchaseDue);
 if(purchasePaymentOption) purchasePaymentOption.addEventListener('change', calculatePurchaseDue);
@@ -102,6 +132,15 @@ function init() {
     if(billingEndDate) billingEndDate.value = todayStr;
     if(stockBillingStartDate) stockBillingStartDate.value = todayStr;
     if(stockBillingEndDate) stockBillingEndDate.value = todayStr;
+    if(pharmacyBillDate) pharmacyBillDate.value = todayStr;
+    
+    if(pharmacyHistoryDateFilter) {
+        pharmacyHistoryDateFilter.value = todayStr;
+        pharmacyHistoryDateFilter.addEventListener('change', (e) => fetchPharmacyBillsByDate(e.target.value));
+        
+        // Fetch the initial history for today
+        fetchPharmacyBillsByDate(todayStr);
+    }
     
     const reportTypePicker = document.getElementById('reportTypePicker');
     const reportMonthPicker = document.getElementById('reportMonthPicker');
@@ -205,8 +244,9 @@ function init() {
         
         // Re-render UI based on new data
         renderPatientList(searchPatient.value);
-        if(billingSummaryView.style.display === 'block') {
+        if(billingSummaryView && billingSummaryView.style.display === 'block') {
             renderBillingSummary();
+            renderStockBillingSummary();
         }
         if(selectedPatientId) {
             const p = patients.find(p => p.id === selectedPatientId);
@@ -236,6 +276,9 @@ function init() {
         console.error("Error listening to purchases:", error);
     });
 
+    // Listen for pharmacy bills for today initially
+    fetchPharmacyBillsByDate(todayStr);
+
     attachEventListeners();
 }
 
@@ -256,9 +299,15 @@ function attachEventListeners() {
     navDashboard.addEventListener('click', () => switchView('dashboard'));
     navBillingSummary.addEventListener('click', () => switchView('billing'));
     if(navStockDetails) navStockDetails.addEventListener('click', () => switchView('stock'));
+    if(navPharmacyBilling) navPharmacyBilling.addEventListener('click', () => { switchView('pharmacy'); generateNextPharmacyBillNumber(); });
     
     registrationForm.addEventListener('submit', handleRegistration);
     if(addPurchaseForm) addPurchaseForm.addEventListener('submit', handleAddPurchase);
+    
+    if(addMedicineForm) addMedicineForm.addEventListener('submit', handleAddMedicine);
+    if(newPharmacyBillBtn) newPharmacyBillBtn.addEventListener('click', newPharmacyBill);
+    if(savePharmacyBillBtn) savePharmacyBillBtn.addEventListener('click', savePharmacyBill);
+    if(printPharmacyBillBtn) printPharmacyBillBtn.addEventListener('click', printPharmacyBill);
     
     if(purchaseAmount) purchaseAmount.addEventListener('input', calculatePurchaseDue);
     if(purchasePaidAmount) purchasePaidAmount.addEventListener('input', calculatePurchaseDue);
@@ -392,28 +441,34 @@ function switchView(view) {
         dashboardView.style.display = 'none';
         billingSummaryView.style.display = 'none';
         if(stockDetailsView) stockDetailsView.style.display = 'none';
+        if(pharmacyBillingView) pharmacyBillingView.style.display = 'none';
         navRegistration.classList.add('active');
         navDashboard.classList.remove('active');
         navBillingSummary.classList.remove('active');
         if(navStockDetails) navStockDetails.classList.remove('active');
+        if(navPharmacyBilling) navPharmacyBilling.classList.remove('active');
     } else if (view === 'dashboard') {
         registrationView.style.display = 'none';
         dashboardView.style.display = 'block';
         billingSummaryView.style.display = 'none';
         if(stockDetailsView) stockDetailsView.style.display = 'none';
+        if(pharmacyBillingView) pharmacyBillingView.style.display = 'none';
         navRegistration.classList.remove('active');
         navDashboard.classList.add('active');
         navBillingSummary.classList.remove('active');
         if(navStockDetails) navStockDetails.classList.remove('active');
+        if(navPharmacyBilling) navPharmacyBilling.classList.remove('active');
     } else if (view === 'billing') {
         registrationView.style.display = 'none';
         dashboardView.style.display = 'none';
         billingSummaryView.style.display = 'block';
         if(stockDetailsView) stockDetailsView.style.display = 'none';
+        if(pharmacyBillingView) pharmacyBillingView.style.display = 'none';
         navRegistration.classList.remove('active');
         navDashboard.classList.remove('active');
         navBillingSummary.classList.add('active');
         if(navStockDetails) navStockDetails.classList.remove('active');
+        if(navPharmacyBilling) navPharmacyBilling.classList.remove('active');
         renderBillingSummary();
         renderStockBillingSummary();
     } else if (view === 'stock') {
@@ -421,11 +476,24 @@ function switchView(view) {
         dashboardView.style.display = 'none';
         billingSummaryView.style.display = 'none';
         if(stockDetailsView) stockDetailsView.style.display = 'block';
+        if(pharmacyBillingView) pharmacyBillingView.style.display = 'none';
         navRegistration.classList.remove('active');
         navDashboard.classList.remove('active');
         navBillingSummary.classList.remove('active');
         if(navStockDetails) navStockDetails.classList.add('active');
+        if(navPharmacyBilling) navPharmacyBilling.classList.remove('active');
         renderPurchaseList();
+    } else if (view === 'pharmacy') {
+        registrationView.style.display = 'none';
+        dashboardView.style.display = 'none';
+        billingSummaryView.style.display = 'none';
+        if(stockDetailsView) stockDetailsView.style.display = 'none';
+        if(pharmacyBillingView) pharmacyBillingView.style.display = 'block';
+        navRegistration.classList.remove('active');
+        navDashboard.classList.remove('active');
+        navBillingSummary.classList.remove('active');
+        if(navStockDetails) navStockDetails.classList.remove('active');
+        if(navPharmacyBilling) navPharmacyBilling.classList.add('active');
     }
     
     // Close sidebar automatically on mobile
@@ -1316,5 +1384,288 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+// --- Pharmacy Billing Logic ---
+
+async function generateNextPharmacyBillNumber() {
+    try {
+        if(pharmacyBillNumber) pharmacyBillNumber.textContent = "Bill No: Generating...";
+        const snapshot = await db.collection('pharmacyBills')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+        
+        let nextNum = 1;
+        if (!snapshot.empty) {
+            const lastBill = snapshot.docs[0].data();
+            if (lastBill.billNumber && lastBill.billNumber.startsWith('PH-')) {
+                const lastNum = parseInt(lastBill.billNumber.replace('PH-', ''), 10);
+                if (!isNaN(lastNum)) {
+                    nextNum = lastNum + 1;
+                }
+            }
+        }
+        
+        currentPharmacyBillNumber = `PH-${String(nextNum).padStart(4, '0')}`;
+        if(pharmacyBillNumber) pharmacyBillNumber.textContent = `Bill No: ${currentPharmacyBillNumber}`;
+    } catch (error) {
+        console.error("Error generating bill number:", error);
+        currentPharmacyBillNumber = `PH-${String(Date.now()).slice(-4)}`;
+        if(pharmacyBillNumber) pharmacyBillNumber.textContent = `Bill No: ${currentPharmacyBillNumber}`;
+    }
+}
+
+function handleAddMedicine(e) {
+    e.preventDefault();
+    if (!medName.value) return;
+    
+    const qty = parseInt(medQty.value, 10) || 1;
+    const price = parseFloat(medPrice.value) || 0;
+    
+    currentPharmacyItems.push({
+        name: medName.value,
+        qty: qty,
+        price: price,
+        amount: qty * price
+    });
+    
+    addMedicineForm.reset();
+    medQty.value = 1;
+    medPrice.value = '0.00';
+    renderPharmacyItemsTable();
+}
+
+window.removePharmacyItem = function(index) {
+    currentPharmacyItems.splice(index, 1);
+    renderPharmacyItemsTable();
+}
+
+function renderPharmacyItemsTable() {
+    if (!pharmacyItemsTableBody) return;
+    
+    pharmacyItemsTableBody.innerHTML = '';
+    let total = 0;
+    
+    if (currentPharmacyItems.length === 0) {
+        pharmacyItemsTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">No medicines added yet.</td></tr>`;
+    } else {
+        currentPharmacyItems.forEach((item, index) => {
+            total += item.amount;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${item.name}</td>
+                <td style="text-align: right;">${item.qty}</td>
+                <td style="text-align: right;">₹${item.price.toFixed(2)}</td>
+                <td style="text-align: right;">₹${item.amount.toFixed(2)}</td>
+                <td style="text-align: center;">
+                    <button class="btn btn-danger" style="padding: 2px 8px;" onclick="removePharmacyItem(${index})"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            pharmacyItemsTableBody.appendChild(tr);
+        });
+    }
+    
+    if(pharmacyGrandTotal) {
+        pharmacyGrandTotal.textContent = `₹${total.toFixed(2)}`;
+    }
+}
+
+
+function newPharmacyBill(silent = false) {
+    currentPharmacyItems = [];
+    if(pharmacyPatientName) pharmacyPatientName.value = '';
+    const today = new Date();
+    if(pharmacyBillDate) pharmacyBillDate.value = today.toISOString().split('T')[0];
+    renderPharmacyItemsTable();
+    generateNextPharmacyBillNumber();
+    if (silent !== true) {
+        showToast("New bill started");
+    }
+}
+
+async function savePharmacyBill() {
+    if (!pharmacyPatientName.value) {
+        showToast("Please enter a patient name.", "error");
+        return;
+    }
+    if (currentPharmacyItems.length === 0) {
+        showToast("Please add at least one medicine.", "error");
+        return;
+    }
+    
+    const totalAmount = currentPharmacyItems.reduce((sum, item) => sum + item.amount, 0);
+    
+    const billData = {
+        billNumber: currentPharmacyBillNumber,
+        patientName: pharmacyPatientName.value,
+        date: pharmacyBillDate.value,
+        items: currentPharmacyItems,
+        totalAmount: totalAmount,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        savePharmacyBillBtn.disabled = true;
+        savePharmacyBillBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
+        await db.collection('pharmacyBills').add(billData);
+        
+        showToast("Pharmacy Bill saved successfully!", "success");
+        savePharmacyBillBtn.disabled = false;
+        savePharmacyBillBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Bill';
+    } catch (error) {
+        console.error("Error saving pharmacy bill:", error);
+        showToast("Failed to save bill.", "error");
+        savePharmacyBillBtn.disabled = false;
+        savePharmacyBillBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Bill';
+    }
+}
+
+function printPharmacyBill() {
+    if (!pharmacyPatientName.value) {
+        showToast("Please enter a patient name before printing.", "error");
+        return;
+    }
+    if (currentPharmacyItems.length === 0) {
+        showToast("Please add medicines before printing.", "error");
+        return;
+    }
+    
+    // Populate print area
+    if(printBillNo) printBillNo.textContent = currentPharmacyBillNumber;
+    if(printBillDate) printBillDate.textContent = pharmacyBillDate.value;
+    if(printPatientName) printPatientName.textContent = pharmacyPatientName.value;
+    
+    if(printTableBody) {
+        printTableBody.innerHTML = '';
+        currentPharmacyItems.forEach((item, index) => {
+            printTableBody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.name}</td>
+                    <td style="text-align: right;">${item.qty}</td>
+                    <td style="text-align: right;">${item.price.toFixed(2)}</td>
+                    <td style="text-align: right;">${item.amount.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+    }
+    
+    const totalAmount = currentPharmacyItems.reduce((sum, item) => sum + item.amount, 0);
+    if(printGrandTotal) printGrandTotal.textContent = `₹${totalAmount.toFixed(2)}`;
+    // Call print
+    window.print();
+}
+
+function fetchPharmacyBillsByDate(dateStr) {
+    if (!dateStr) return;
+    
+    if (pharmacyBillsUnsubscribe) {
+        pharmacyBillsUnsubscribe();
+    }
+    
+    pharmacyBillsTableLoading(true);
+    
+    pharmacyBillsUnsubscribe = db.collection('pharmacyBills')
+        .where('date', '==', dateStr)
+        .onSnapshot(snapshot => {
+            pharmacyBillsList = [];
+            snapshot.forEach(doc => {
+                pharmacyBillsList.push({ id: doc.id, ...doc.data() });
+            });
+            renderPharmacyBillHistory();
+        }, error => {
+            console.error("Error listening to pharmacy bills by date:", error);
+            pharmacyBillsTableLoading(false);
+        });
+}
+
+function pharmacyBillsTableLoading(isLoading) {
+    if (!pharmacyHistoryTableBody) return;
+    if (isLoading) {
+        pharmacyHistoryTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">Loading history...</td></tr>`;
+        if (pharmacyHistoryGrandTotal) pharmacyHistoryGrandTotal.textContent = `₹0.00`;
+    }
+}
+
+function renderPharmacyBillHistory() {
+    if (!pharmacyHistoryTableBody) return;
+    
+    pharmacyHistoryTableBody.innerHTML = '';
+    
+    if (pharmacyBillsList.length === 0) {
+        pharmacyHistoryTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">No pharmacy bills found for this date.</td></tr>`;
+        if (pharmacyHistoryGrandTotal) pharmacyHistoryGrandTotal.textContent = `₹0.00`;
+        return;
+    }
+    
+    // Sort client side by createdAt descending
+    pharmacyBillsList.sort((a, b) => {
+        let timeA = a.createdAt ? (typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : 0) : 0;
+        let timeB = b.createdAt ? (typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : 0) : 0;
+        return timeB - timeA;
+    });
+    
+    let grandTotal = 0;
+    
+    pharmacyBillsList.forEach(bill => {
+        grandTotal += (bill.totalAmount || 0);
+        let timeStr = "";
+        if (bill.createdAt && typeof bill.createdAt.toDate === 'function') {
+            timeStr = bill.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${bill.billNumber}</strong></td>
+            <td>${bill.date}</td>
+            <td>${timeStr}</td>
+            <td>${bill.patientName}</td>
+            <td style="font-weight: 500;">₹${(bill.totalAmount || 0).toFixed(2)}</td>
+            <td style="text-align: center;">
+                <button class="btn btn-primary" style="padding: 2px 8px;" onclick="viewPharmacyBill('${bill.id}')" title="View / Reprint">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+            </td>
+        `;
+        pharmacyHistoryTableBody.appendChild(tr);
+    });
+    
+    if (pharmacyHistoryGrandTotal) {
+        pharmacyHistoryGrandTotal.textContent = `₹${grandTotal.toFixed(2)}`;
+    }
+}
+
+window.viewPharmacyBill = function(billId) {
+    const bill = pharmacyBillsList.find(b => b.id === billId);
+    if (!bill) return;
+    
+    // Populate print area directly from the history bill
+    if(printBillNo) printBillNo.textContent = bill.billNumber;
+    if(printBillDate) printBillDate.textContent = bill.date;
+    if(printPatientName) printPatientName.textContent = bill.patientName;
+    
+    if(printTableBody) {
+        printTableBody.innerHTML = '';
+        (bill.items || []).forEach((item, index) => {
+            printTableBody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.name}</td>
+                    <td style="text-align: right;">${item.qty}</td>
+                    <td style="text-align: right;">${item.price.toFixed(2)}</td>
+                    <td style="text-align: right;">${item.amount.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+    }
+    
+    const totalAmount = (bill.items || []).reduce((sum, item) => sum + item.amount, 0);
+    if(printGrandTotal) printGrandTotal.textContent = `₹${totalAmount.toFixed(2)}`;
+    
+    // Call print to show the preview without scrolling
+    window.print();
+}
+
 // Boot up
-document.addEventListener('DOMContentLoaded', init);
+init();

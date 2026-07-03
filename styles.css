@@ -29,9 +29,9 @@ body {
     color: var(--text-main);
     background-image: 
         /* Soft teal-to-mint gradient overlay for readability */
-        linear-gradient(135deg, rgba(240, 253, 249, 0.88) 0%, rgba(236, 254, 255, 0.85) 50%, rgba(240, 253, 249, 0.88) 100%),
+        linear-gradient(135deg, rgba(240, 253, 249, 0.65) 0%, rgba(236, 254, 255, 0.55) 50%, rgba(240, 253, 249, 0.65) 100%),
         /* Doctor profession background image */
-        url("medical-bg.png");
+        url("clinic-bg-new.png");
     background-size: auto, cover;
     background-position: center, center;
     background-attachment: fixed;
@@ -764,3 +764,106 @@ body {
     box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
 }
 
+/* Print Receipt Styles */
+.print-only {
+    display: none;
+}
+
+@media print {
+    body, html {
+        margin: 0;
+        padding: 0;
+        background: white;
+        height: auto;
+        overflow: visible;
+    }
+    
+    .app-container, .toast-container, .sidebar, .top-header, .sidebar-overlay {
+        display: none !important;
+    }
+    
+    .print-only {
+        display: block !important;
+        width: 100%;
+        max-width: 80mm; /* Thermal receipt width approx */
+        margin: 0 auto;
+        font-family: 'Inter', sans-serif;
+        color: black;
+        font-size: 12px;
+    }
+
+    .print-header {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    .print-header h2 {
+        font-size: 18px;
+        margin: 0 0 5px 0;
+        font-weight: 700;
+    }
+
+    .print-header p {
+        margin: 0;
+        font-size: 12px;
+    }
+
+    .print-header .phone-number {
+        font-weight: 600;
+        margin-top: 3px;
+    }
+
+    .print-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        margin-bottom: 15px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 10px;
+    }
+
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+
+    .print-table th {
+        border-bottom: 1px dashed #ccc;
+        border-top: 1px dashed #ccc;
+        padding: 5px 2px;
+        text-align: left;
+    }
+
+    .print-table td {
+        padding: 5px 2px;
+        vertical-align: top;
+    }
+
+    .print-table tfoot td {
+        border-top: 1px dashed #ccc;
+        padding-top: 10px;
+        font-size: 14px;
+    }
+
+    .print-footer {
+        margin-top: 30px;
+    }
+
+    .print-footer .signature {
+        width: 150px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .print-footer .signature hr {
+        border: none;
+        border-top: 1px solid black;
+        margin-bottom: 5px;
+    }
+
+    .print-footer .signature p {
+        margin: 0;
+        font-size: 11px;
+    }
+}
